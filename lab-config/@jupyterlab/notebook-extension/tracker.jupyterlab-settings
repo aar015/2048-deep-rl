@@ -1,0 +1,34 @@
+{
+    "codeCellConfig": {
+        "autoClosingBrackets": true,
+        "fontFamily": null,
+        "fontSize": 16,
+        "lineHeight": null,
+        "lineNumbers": false,
+        "lineWrap": "off",
+        "matchBrackets": true,
+        "readOnly": false,
+        "insertSpaces": true,
+        "tabSize": 4,
+        "wordWrapColumn": 80,
+        "rulers": [],
+        "codeFolding": false,
+        "lineWiseCopyCut": true
+    },
+    "markdownCellConfig":{
+        "autoClosingBrackets": false,
+        "fontFamily": null,
+        "fontSize": null,
+        "lineHeight": null,
+        "lineNumbers": false,
+        "lineWrap": "on",
+        "matchBrackets": false,
+        "readOnly": false,
+        "insertSpaces": true,
+        "tabSize": 4,
+        "wordWrapColumn": 80,
+        "rulers": [],
+        "codeFolding": false,
+        "lineWiseCopyCut": true
+    }
+}
