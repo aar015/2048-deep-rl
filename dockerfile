@@ -15,11 +15,10 @@ RUN python3 -m pip install --no-cache-dir \
     jupyterlab==2.2.0 \
     numba==0.50.1 \
     torch==1.6.0 \
-    torchvision==0.7.0 \
     jupyter-lsp==0.9.0 \
     python-language-server[all]==0.34.1 \
-    SQLAlchemy==1.3.18 \
     pandas==1.0.5 \
+    matplotlib==3.3.1 \
     ipywidgets==7.5.1 \
     ipycanvas==0.4.7 \
     ipyevents==0.8.0

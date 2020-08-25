@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if command -v nvidia-smi &> /dev/null; then
-    echo "Hi"
+    echo "Running in GPU Mode"
     docker run \
     --rm \
     --pid=host \
@@ -12,6 +12,7 @@ if command -v nvidia-smi &> /dev/null; then
     --gpus all \
     2048-jupyter:latest
 else
+    echo "Running in CPU Mode"
     docker run \
     --rm \
     --pid=host \
