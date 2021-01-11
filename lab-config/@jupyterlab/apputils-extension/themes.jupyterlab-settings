@@ -1,8 +1,0 @@
-{
-    "overrides": {
-        "code-font-size": null,
-        "content-font-size1": null,
-        "ui-font-size1": null
-    },
-    "theme": "Dracula"
-}

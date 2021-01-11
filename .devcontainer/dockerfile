@@ -1,0 +1,7 @@
+FROM mcr.microsoft.com/vscode/devcontainers/python:3.8
+
+RUN pip install --no-cache-dir jupyterlab
+RUN pip install --no-cache-dir numba torch
+
+ENV PYTHONPATH=$PYTHONPATH/workspaces/2048-deep-rl
+ENV JUPYTER_PATH=$JUPYTER_PATH/workspaces/2048-deep-rl

@@ -11,6 +11,6 @@ class ValueFunc(ABC):
         pass
 
     @abstractmethod
-    def update(self, state, reward, next_state):
+    def update(self, state, target):
         """Something."""
         pass

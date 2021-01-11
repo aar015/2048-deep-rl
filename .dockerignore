@@ -1,6 +1,0 @@
-jupyter/*
-lab-config/*
-ssl/*
-venv/*
-.git/*
-.gitignore

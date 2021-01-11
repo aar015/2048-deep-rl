@@ -1,0 +1,15 @@
+{
+    "name": "2048-deep-rl",
+    "build": { "dockerfile": "dockerfile" },
+    "settings": { 
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "python.pythonPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.linting.flake8Enabled": true,
+        "python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
+        "jupyter.jupyterServerType": "local",
+        "jupyter.alwaysTrustNotebooks": true,
+    },
+    "extensions": ["ms-python.python", "ms-toolsai.jupyter"]
+}
