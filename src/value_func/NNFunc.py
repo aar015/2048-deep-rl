@@ -1,15 +1,16 @@
 """Something."""
 from . import ValueFunc
-import torch
 
 
 class NNFunc(ValueFunc):
     """Something."""
 
-    def __init__(self, model, device):
+    def __init__(self, model, loss_func, optimizer, device):
         """Something."""
         self._device = device
         self._model = model.to(device)
+        self._loss_func = loss_func
+        self._optimizer = optimizer
 
     @property
     def model(self):
@@ -23,15 +24,12 @@ class NNFunc(ValueFunc):
 
     def evaluate(self, state):
         """Something."""
-        if state.shape == torch.Size([4, 4]):
-            return self.model(state.flatten().float())
-        return self.model(state.flatten(1).float()).flatten()
+        return self.model(state.flatten(-2, -1).float()).squeeze()
 
-    def update(self, state, reward, next_state, loss_func, optimizer):
+    def update(self, state, target):
         """Something."""
         value = self.evaluate(state)
-        target = reward + self.evaluate(next_state).detach()
-        loss = loss_func(value, target)
-        optimizer.zero_grad()
+        loss = self._loss_func(value, target.float())
+        self._optimizer.zero_grad()
         loss.backward()
-        optimizer.step()
+        self._optimizer.step()
