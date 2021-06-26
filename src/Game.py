@@ -2,7 +2,6 @@
 import torch
 from numba import guvectorize
 
-
 LEFT, UP, RIGHT, DOWN = 0, 1, 2, 3
 
 
@@ -47,7 +46,7 @@ def _add_tile(state, random1, random2):
                 num_zero += 1
     if num_zero != 0:
         nth_zero = int(num_zero * random1[0])
-        count = 0
+        x, y, count = 0, 0, 0
         for _x in range(state.shape[0]):
             for _y in range(state.shape[1]):
                 if state[_x, _y] == 0:
@@ -60,12 +59,17 @@ def _add_tile(state, random1, random2):
 class Game(object):
     """Something."""
 
-    def __init__(self, batch_size=100, board_size=4, history=None,
-                 device=torch.device("cpu"), target=None):
+    def __init__(self, batch_size=1000, board_size=4, history=None,
+                 device=None, target=None):
         """Something."""
         self._batch_size = batch_size
         self._board_size = board_size
         self._history = history
+        if device is None:
+            if torch.cuda.is_available():
+                device = torch.device('cuda')
+            else:
+                device = torch.device('cpu')
         self._device = device
         if target is None:
             self._target = self.device.type
