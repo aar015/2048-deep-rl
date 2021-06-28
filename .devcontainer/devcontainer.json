@@ -13,7 +13,7 @@
         "python.linting.flake8Enabled": true,
         "python.linting.pydocstyleEnabled": true,
         "python.linting.flake8Path": "/usr/local/bin/flake8",
-        "python.linting.pydocstylePath": "/usr/local/bin/flake8",
+        "python.linting.pydocstylePath": "/usr/local/bin/pydocstyle",
         "jupyter.alwaysTrustNotebooks": true,
     },
 
