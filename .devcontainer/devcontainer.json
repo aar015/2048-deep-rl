@@ -36,7 +36,7 @@
         "python.linting.pydocstyleEnabled": true,
         "python.linting.flake8Path": "/usr/local/bin/flake8",
         "python.linting.pydocstylePath": "/usr/local/bin/pydocstyle",
-        "python.linting.flake8Args": ["--ignore=F722"],
+        "python.linting.flake8Args": ["--ignore=F722,W503"],
         "jupyter.alwaysTrustNotebooks": true,
     },
 }

@@ -77,10 +77,9 @@ def advance(state, reward):
 
 def rotations(states):
     """Find every rotation of states."""
-    rot90 = jnp.rot90(states, 1, (-2, -1))
-    rot180 = jnp.rot90(states, 2, (-2, -1))
-    rot270 = jnp.rot90(states, 3, (-2, -1))
-    ro
+    jnp.rot90(states, 1, (-2, -1))
+    jnp.rot90(states, 2, (-2, -1))
+    jnp.rot90(states, 3, (-2, -1))
 
 
 def main():

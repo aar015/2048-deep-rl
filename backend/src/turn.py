@@ -1,24 +1,41 @@
 """Define turn in 2048 game."""
+from .app import app, Positive, Random
+from .state import StateString
+from enum import IntEnum
 from pydantic import BaseModel
-from ..api import api
+from typing import Optional, List
 
 
-class Turn(BaseModel):
+class Action(IntEnum):
+    """Action enum for typing."""
+
+    left = 0
+    up = 1
+    right = 2
+    down = 3
+
+
+class TurnTicket(BaseModel):
     """Symmetrize function input."""
 
-    state: str
-    action: int
+    state: List[StateString]
+    action: List[Action]
+    random: Random
 
 
-class MoveResponse(BaseModel):
+class TurnSummary(BaseModel):
     """Symmetrize function output."""
 
-    state: str
-    reward: int
+    state: StateString
+    action: Action
+    reward: Positive
+    nextState: StateString
     terminal: bool
+    score: Positive
+    futureScore: Optional[Positive] = None
 
 
-@api.post('/environ/turn', response_model=MoveResponse)
-async def move(board: Turn):
+@app.post('/turn', response_model=TurnSummary)
+def submit(ticket: TurnTicket):
     """Symmetrize input turn."""
-    return MoveResponse(state='',  reward=0, terminal=True)
+    pass
