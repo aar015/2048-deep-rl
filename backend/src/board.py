@@ -1,9 +1,38 @@
 """Define board in 2048 game."""
 import torch
-from ..app import app
+from .app import app
+from .primatives import uint4
 from functools import partial
 from pydantic import BaseModel
-from pydantic.types import conint, constr
+from pydantic.types import constr
+
+
+class Board(BaseModel):
+    """Model of 2048 game board."""
+
+    state: constr(strip_whitespace=True, to_lower=True, min_length=16,
+                  max_length=16, regex='^[a-f0-9]*$')
+
+
+class LongBoard(BaseModel):
+    """Long form model of 2048 game board."""
+
+    tile0: uint4
+    tile1: uint4
+    tile2: uint4
+    tile3: uint4
+    tile4: uint4
+    tile5: uint4
+    tile6: uint4
+    tile7: uint4
+    tile8: uint4
+    tile9: uint4
+    tilea: uint4
+    tileb: uint4
+    tilec: uint4
+    tiled: uint4
+    tilee: uint4
+    tilef: uint4
 
 
 def tensor_to_int(state: torch.Tensor):
@@ -18,13 +47,7 @@ def tensor_to_int(state: torch.Tensor):
 def tensor_to_str(state: torch.Tensor):
     """Convert 4x4 pytorch tensor to board state string."""
     num = tensor_to_int(state)
-    return f'{num:x}'
-
-
-class Board(BaseModel):
-    """Model of 2048 game board."""
-
-    state: constr(strip_whitespace=True, min_length=16, max_length=16)
+    return f'{num:0>16x}'
 
 
 def str_to_list(state: str):
@@ -33,45 +56,12 @@ def str_to_list(state: str):
     return list(map(partial(int, base=16), list(state.state)))
 
 
-class BoardLong(BaseModel):
-    """Long form model of 2048 game board."""
-
-    tile0: conint(ge=0, le=15)
-    tile1: conint(ge=0, le=15)
-    tile2: conint(ge=0, le=15)
-    tile3: conint(ge=0, le=15)
-    tile4: conint(ge=0, le=15)
-    tile5: conint(ge=0, le=15)
-    tile6: conint(ge=0, le=15)
-    tile7: conint(ge=0, le=15)
-    tile8: conint(ge=0, le=15)
-    tile9: conint(ge=0, le=15)
-    tilea: conint(ge=0, le=15)
-    tileb: conint(ge=0, le=15)
-    tilec: conint(ge=0, le=15)
-    tiled: conint(ge=0, le=15)
-    tilee: conint(ge=0, le=15)
-    tilef: conint(ge=0, le=15)
-
-
 def str_to_long_model(state: str):
     """Convert board state string to long pydantic model."""
     state = str_to_list(state)
     state = {f'tile{i:x}': tile for i, tile in enumerate(state)}
-    state = BoardLong(**state)
+    state = LongBoard(**state)
     return state
-
-
-@app.get('/environ/board/{state}', response_model=BoardLong)
-def board(state: str):
-    """Get board tiles from board string."""
-    tensor = str_to_tensor(state)
-    print(tensor)
-    back_int = tensor_to_int(tensor)
-    print(back_int)
-    back_str = tensor_to_str(tensor)
-    print(back_str)
-    return str_to_long_model(state)
 
 
 def str_to_tensor(state: str):
@@ -79,3 +69,28 @@ def str_to_tensor(state: str):
     state = str_to_list(state)
     state = torch.tensor(state).reshape((4, 4))
     return state
+
+
+@app.get('/board', response_model=Board)
+def route_long_board_to_board(
+    tile0: uint4, tile1: uint4, tile2: uint4, tile3: uint4,
+    tile4: uint4, tile5: uint4, tile6: uint4, tile7: uint4,
+    tile8: uint4, tile9: uint4, tilea: uint4, tileb: uint4,
+    tilec: uint4, tiled: uint4, tilee: uint4, tilef: uint4
+):
+    """Convert list of tiles to board string."""
+    tensor = torch.tensor([
+        tile0, tile1, tile2, tile3,
+        tile4, tile5, tile6, tile7,
+        tile8, tile9, tilea, tileb,
+        tilec, tiled, tilee, tilef
+    ]).reshape(4, 4)
+    string = tensor_to_str(tensor)
+    board = Board(state=string)
+    return board
+
+
+@app.get('/board/{state}', response_model=LongBoard)
+def route_board_to_long_board(state: str):
+    """Convert board string to list of tiles."""
+    return str_to_long_model(state)

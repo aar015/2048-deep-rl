@@ -4,8 +4,30 @@
 
     "build": { 
         "dockerfile": "containerfile",
-        "context": ".",
+        "args": {
+            "CUDA_VERSION": "11.3.1",
+            "UBUNTU_VERSION": "20.04",
+        },
     },
+
+    "remoteEnv": {
+        "PYTHONPATH": "${PYTHONPATH}:/workspaces/2048-deep-rl/backend/",
+    },
+
+    "mounts": [
+        "type=bind,src=${localEnv:HOME}/.ssh/id_ed25519,dst=/root/.ssh/id_25519,ro=true,consistency=cached",
+        "type=bind,src=${localEnv:HOME}/.ssh/id_ed25519.pub,dst=/root/.ssh/id_25519.pub,ro=true,consistency=cached"
+    ],
+
+    "forwardPorts": [8000],
+
+    "runArgs": [
+        "--security-opt=label=disable",
+    ],
+
+    "extensions": [
+        "ms-python.python",
+    ],
 
     "settings": {
         "python.linting.enabled": true,
@@ -14,18 +36,7 @@
         "python.linting.pydocstyleEnabled": true,
         "python.linting.flake8Path": "/usr/local/bin/flake8",
         "python.linting.pydocstylePath": "/usr/local/bin/pydocstyle",
+        "python.linting.flake8Args": ["--ignore=F722"],
         "jupyter.alwaysTrustNotebooks": true,
     },
-
-    "extensions": [
-        "ms-python.python",
-    ],
-
-    "remoteEnv": {
-        "PYTHONPATH": "${PYTHONPATH}:/workspaces/2048-deep-rl",
-    },
-
-    "runArgs": [
-        "--security-opt=label=disable",
-    ]
 }
