@@ -1,5 +1,5 @@
 """Define state of 2048 game."""
-from .app import app, SETTINGS, Random, Positive
+from .app import SETTINGS
 from functools import partial, wraps
 from jax import jit, vmap, random
 from jax import numpy as jnp
@@ -171,6 +171,20 @@ def _choose_rotation(rotations, actions):
         reshape(-1, 4, 4)
 
 
+@jit
+def _add_tile(key, states):
+    """Add new tile to states."""
+    key1, key2 = random.split(key)
+    flat = states.reshape(-1, 16)
+    zeros = jnp.where(flat, 0, 1)
+    randoms = random.uniform(key1, zeros.shape)
+    indices = jnp.arange(states.shape[0])
+    empties = jnp.argmax(zeros * randoms, axis=1)
+    weights = jnp.array([0, 0.9, 0.1])
+    newTiles = random.choice(key2, 3, (states.shape[0],), p=weights)
+    return flat.at[indices, empties].set(newTiles).reshape((-1, 4, 4))
+
+
 class States(object):
     """Batch of 2048 board states."""
 
@@ -305,7 +319,7 @@ class States(object):
         """Get mask of states that pass validation."""
         if self._validate is not None:
             return self._validate
-        self._validate = jnp.array(_validate(self.large).copy_to_host())
+        self._validate = jnp.array(_validate(self.large))
         return self.validate
 
     @property
@@ -354,12 +368,6 @@ class States(object):
         """Rotate states."""
         return States(large=_choose_rotation(self.rotations, actions))
 
-
-@app.get('/game/init', response_model=List[State])
-def initialize_board_states(
-    seed: Positive, index: Positive = 0, n: Positive = 10
-):
-    """Generate n random initial states."""
-    key = Random(seed=seed, index=index)
-    states = States(key.key, n)
-    return states.string
+    def add_tile(self, key):
+        """Add new tile to board."""
+        return States(large=_add_tile(key, self.large))

@@ -12,7 +12,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Dev environment python packages
-RUN pip3 install --no-cache-dir flake8 pydocstyle jupyter
+RUN pip3 install --no-cache-dir flake8==3.9.2 pydocstyle==6.1.1
 
 # Oh my zsh
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
@@ -24,4 +24,4 @@ ENV SHELL /usr/bin/zsh
 
 # Runtime environment python packages
 RUN pip3 install --no-cache-dir "jax[cuda111]==0.2.17" -f https://storage.googleapis.com/jax-releases/jax_releases.html
-RUN pip3 install --no-cache-dir numba==0.53.1 pydantic==1.8.2 fastapi[all]==0.66.0 SQLAlchemy==1.4.20 torch==1.9.0
+RUN pip3 install --no-cache-dir numba==0.53.1 pydantic==1.8.2 fastapi[all]==0.66.0 SQLAlchemy==1.4.20
