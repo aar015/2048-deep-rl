@@ -1,9 +1,16 @@
 """Define turn in 2048 game."""
 from .app import app, Positive, Random
-from .state import StateString
+from .state import State, States
 from enum import IntEnum
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
+from jax import numpy as jnp
+
+
+def execute(key, states: States, actions):
+    """Execute a turn."""
+    rotated = states.rotate(actions)
+    return rotated.reward, rotated.next
 
 
 class Action(IntEnum):
@@ -16,26 +23,35 @@ class Action(IntEnum):
 
 
 class TurnTicket(BaseModel):
-    """Symmetrize function input."""
+    """Ticket to execute turn."""
 
-    state: List[StateString]
-    action: List[Action]
+    state: State
+    action: Action
     random: Random
 
 
-class TurnSummary(BaseModel):
+class Turn(TurnTicket):
     """Symmetrize function output."""
 
-    state: StateString
-    action: Action
-    reward: Positive
-    nextState: StateString
-    terminal: bool
-    score: Positive
-    futureScore: Optional[Positive] = None
+    success: bool
+    reward: Optional[Positive]
+    nextState: Optional[State]
+    terminal: Optional[bool]
 
 
-@app.post('/turn', response_model=TurnSummary)
-def submit(ticket: TurnTicket):
-    """Symmetrize input turn."""
-    pass
+@app.post('/game/execute', response_model=Turn)
+def execute_turn(ticket: TurnTicket):
+    """Execute a turn."""
+    state = States(string=[ticket.state])
+    if not state.validate[0]:
+        return Turn(**ticket.dict(), success=False)
+    action = jnp.array([ticket.action], jnp.int8)
+    key = ticket.random.key
+    reward, nextState = execute(key, state, action)
+    reward = reward.tolist()[0]
+    nextState = nextState.rotate(-1 * action)
+    terminal = nextState.terminal
+    return Turn(
+        **ticket.dict(), success=True, reward=reward,
+        nextState=nextState.string, terminal=terminal
+    )

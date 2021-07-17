@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     device: str = jax.default_backend()
     target: str = 'cuda' if jax.default_backend() == 'gpu' else 'cpu'
 
+    class Config:
+        """Pydantic config."""
+
+        allow_mutation = False
+
 
 SETTINGS = Settings()
 
@@ -24,35 +29,28 @@ Positive = conint(ge=0)
 class Random(BaseModel):
     """Pydantic model for jax random key."""
 
-    count: Positive = 0
+    __slots__ = ('key')
     seed: Positive
+    index: Positive = 0
 
-    @property
-    def key(self):
-        """Fetch key as jax array."""
-        return jnp.array([self.count, self.seed], jnp.uint32)
+    class Config:
+        """Pydantic config."""
+
+        allow_mutation = False
+
+    def __init__(self, **kwargs):
+        """Initialize random key model."""
+        super().__init__(**kwargs)
+        key = jnp.array([self.index, self.seed], jnp.uint32)
+        object.__setattr__(self, 'key', key)
 
     def split(self, num):
         """Split random key into n children keys."""
         children = random.split(self.key, num).copy().tolist()
-        return [Random(count=child[0], seed=child[1]) for child in children]
+        return [Random(seed=child[1], index=child[0]) for child in children]
 
 
-@app.get('/rand/init/{seed}', response_model=Random)
-def random_init(seed: Positive):
-    """Initialize random key."""
-    return Random(seed=seed)
-
-
-class RandomSplit(BaseModel):
-    """Pydantic model for response to split route."""
-
-    parent: Random
-    children: List[Random]
-
-
-@app.put('/rand/split', response_model=RandomSplit)
-def random_split(parent: Random, num: Positive):
+@app.get('/random', response_model=List[Random])
+def split_random_key(seed: Positive, index: Positive = 0, n: Positive = 2):
     """Split random key into n children keys."""
-    children = parent.split(num)
-    return RandomSplit(parent=parent, children=children)
+    return Random(seed=seed, index=index).split(n)
