@@ -1,0 +1,101 @@
+.board-box {
+    background-color: black;
+    position: relative;
+    width: 100%;
+}
+
+.board-box::after {
+    content: "";
+    display: block;
+    padding-bottom: 100%;
+}
+
+$padding: 0.3rem;
+
+.board {
+    position: absolute;
+    width: calc(100% - #{2 * $padding});
+    height: calc(100% - #{2 * $padding});
+
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: $padding;
+    padding: $padding;
+}
+
+[class*='tile']::before{
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3em;
+    color: white;
+
+    background-color: cyan;
+}
+
+.tile0::before {
+    content: '';
+}
+
+.tile1::before {
+    content: '2';
+}
+
+.tile2::before {
+    content: '4';
+}
+
+.tile3::before {
+    content: '8';
+}
+
+.tile4::before {
+    content: '16';
+}
+
+.tile5::before {
+    content: '32';
+}
+
+.tile6::before {
+    content: '64';
+}
+
+.tile7::before {
+    content: '128';
+}
+
+.tile8::before {
+    content: '256';
+}
+
+.tile9::before {
+    content: '512';
+}
+
+.tilea::before {
+    content: '1024';
+}
+
+.tileb::before {
+    content: '2048';
+}
+
+.tilec::before {
+    content: '4096';
+}
+
+.tiled::before {
+    content: '8192';
+}
+
+.tilee::before {
+    content: '16384';
+}
+
+.tilef::before {
+    content: '32768';
+}

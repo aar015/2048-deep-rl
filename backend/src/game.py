@@ -34,22 +34,22 @@ def initialize_board(seed: Positive, index: Positive = 0):
     return states.string[0]
 
 
-@app.get('/game/execute', response_model=Turn)
+@app.get('/game/exec', response_model=Turn)
 def execute_action(
     state: State, action: Action, seed: Positive, index: Positive = 0
 ):
     """Execute an action on the board state."""
     states = States(string=[state])
-    if not states.validate[0]:
-        terminal = states.terminal.tolist()[0]
+    actions = jnp.array([action], jnp.int8)
+    rotated = states.rotate(actions)
+    if not rotated.validate[0]:
+        terminal = rotated.terminal.tolist()[0]
         return Turn(
             state=state, action=action, reward=0,
             nextState=state, terminal=terminal
         )
-    key = Random(seed=seed, index=index).key
-    actions = jnp.array([action], jnp.int8)
-    rotated = states.rotate(actions)
     reward = rotated.reward.tolist()[0]
+    key = Random(seed=seed, index=index).key
     nextStates = rotated.next.add_tile(key)
     nextState = nextStates.rotate(-1 * action).string[0]
     terminal = nextStates.terminal.tolist()[0]
