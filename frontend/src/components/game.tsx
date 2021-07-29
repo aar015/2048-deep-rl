@@ -2,25 +2,27 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Board } from './board';
 
 interface Key {
-    seed: number,
-    index: number,
+    seed: number;
+    index: number;
 }
 
 interface GameLogicPropsState {
-    board: string,
-    score: number,
+    board: string;
+    score: number;
 }
 
 interface GameLogicProps {
-    seed: number 
+    seed: number;
+    numGames: number;
 }
 
 const GameLogic: React.FC<GameLogicProps> = (props) => {
     const [state, setState] = useState<GameLogicPropsState>({'board': '0000000000000000', 'score': 0});
-    const key = useRef<Key>({'seed': props.seed, 'index': 0})
+    const key = useRef<Key>({'seed': 0, 'index': 0})
 
     useEffect(() => {
         const initState = async() => {
+            [key.current.seed, key.current.index] = [props.seed, 0]
             const randQ = `http://localhost:8000/random?seed=${key.current.seed}&index=${key.current.index}&n=${2}`;
             const [newKey, subKey] = await fetch(randQ).then(res => res.json());
             const initQ = `http://localhost:8000/game/init?seed=${subKey.seed}&index=${subKey.index}`;
@@ -30,7 +32,7 @@ const GameLogic: React.FC<GameLogicProps> = (props) => {
         }
 
         initState();
-    }, [])
+    }, [props.seed, props.numGames])
 
     useEffect(() => {
         const execState = async(action: number) => {
@@ -70,25 +72,37 @@ const GameLogic: React.FC<GameLogicProps> = (props) => {
 interface SeedInputProps {
     seed: number;
     onChange: React.Dispatch<React.SetStateAction<number>>;
+    onClick: () => void;
 }
 
 const SeedInput: React.FC<SeedInputProps> = (props) => {
+    const [seed, setSeed] = useState(props.seed);
+    const randomSeed = () => {
+        setSeed(Math.floor(Math.random() * 1e9));
+    }
+    const newGame = () => {
+        props.onChange(seed);
+        props.onClick();
+    }
+
     return <>
         <div className='seed-input'>
-            <label htmlFor='seed'>Seed</label>
-            <input type='number' id='seed'/>
-            <button>Random Seed</button>
-            <button>New Game</button>
+            <input type='number' value={ seed } onChange={ e => setSeed(parseInt(e.target.value)) }/>
+            <button onClick={ randomSeed }>Random Seed</button>
+            <button onClick={ newGame }>New Game</button>
         </div>
     </>
 }
 
 export const Game: React.FC = () => {
     const [seed, setSeed] = useState(0);
+    const [numGames, setNumGames] = useState(0);
+    const incrementGames = () => setNumGames(numGames + 1);
+
     return <>
         <div className='game'>
-            <SeedInput seed = { seed } onChange = { setSeed }/>
-            <GameLogic seed = { seed }/>
+            <SeedInput seed = { seed } onChange = { setSeed } onClick = { incrementGames }/>
+            <GameLogic seed = { seed } numGames = { numGames }/>
         </div>
     </>
 }

@@ -1,5 +1,5 @@
 .board-box {
-    background-color: black;
+    background-color: grey;
     position: relative;
     width: 100%;
 }
@@ -10,7 +10,7 @@
     padding-bottom: 100%;
 }
 
-$padding: 0.3rem;
+$padding: 0.75rem;
 
 .board {
     position: absolute;
@@ -30,72 +30,115 @@ $padding: 0.3rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3em;
+    font-size: 4em;
     color: white;
-
-    background-color: cyan;
+    -webkit-text-stroke-width: 1px;
+    -webkit-text-stroke-color: black;
 }
 
 .tile0::before {
     content: '';
+    background-color: lightgrey;
 }
 
 .tile1::before {
     content: '2';
+    background-color: hsl(0,70%,50%);
 }
 
 .tile2::before {
     content: '4';
+    background-color: hsl(18,100%,60%);
 }
 
 .tile3::before {
     content: '8';
+    background-color: hsl(36,75%,40%);
 }
 
 .tile4::before {
     content: '16';
+    background-color: hsl(54,90%,75%);
 }
 
 .tile5::before {
     content: '32';
+    background-color: hsl(72,90%,50%);
 }
 
 .tile6::before {
     content: '64';
+    background-color: hsl(90,90%,40%);
 }
 
 .tile7::before {
     content: '128';
+    background-color: hsl(108,60%,25%);
 }
 
 .tile8::before {
     content: '256';
+    background-color: hsl(126,80%,40%);
 }
 
 .tile9::before {
     content: '512';
+    background-color: hsl(144,90%,60%);
 }
 
 .tilea::before {
     content: '1024';
+    background-color: hsl(162,90%,80%);
 }
 
 .tileb::before {
     content: '2048';
+    background-color: hsl(180,80%,60%);
 }
 
 .tilec::before {
     content: '4096';
+    background-color: hsl(198,70%,40%);
 }
 
 .tiled::before {
     content: '8192';
+    background-color: hsl(216,60%,25%);
 }
 
 .tilee::before {
     content: '16384';
+    background-color: hsl(234,75%,50%);
 }
 
 .tilef::before {
     content: '32768';
+    background-color: hsl(252,90%,70%);
+}
+
+.score-box {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.score {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    background-color: lightgrey;
+
+    font-size: 2rem;
+
+    width: 9rem;
+    height: 6rem;
+}
+
+.score::before {
+    content: 'Score';
+    font-size: 1.5rem;
 }

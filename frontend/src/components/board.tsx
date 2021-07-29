@@ -7,7 +7,9 @@ interface Props {
 
 export const Board: React.FC<Props> = (props) => {
     return <>
-        <div className='score'> { props.score } </div>
+        <div className='score-box'>
+            <div className='score'> { props.score } </div>
+        </div>
         <div className='board-box'>
             <div className='board'>
                 <div className={ `tile${ props.board[0]  }` }/>

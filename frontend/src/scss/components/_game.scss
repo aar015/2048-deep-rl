@@ -1,17 +1,17 @@
 .game {
-    background-color: green;
-    display: flex;
-    flex-direction: column;
     width: min(800px, 100%);
+
+    display: grid;
+    grid-template-rows: auto auto;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
 }
 
 .seed-input {
-    background-color: indigo;
-    width: 50%;
+    display: grid;
+    background-color: lightgrey;
 }
 
-.score {
-    background-color: red;
-    width: 50%;
-    margin-right: 0;
+.game .board-box {
+    grid-column: 1 / span 2;
 }
