@@ -1,6 +1,6 @@
 """Implement routes to play game."""
 from .app import app
-from .random import Positive, Random
+from .random import Unsigned, Random
 from .state import State, States
 from enum import IntEnum
 from pydantic import BaseModel
@@ -21,13 +21,13 @@ class Turn(BaseModel):
 
     state: State
     action: Action
-    reward: Positive
+    reward: Unsigned
     nextState: State
     terminal: bool
 
 
 @app.get('/game/init', response_model=State)
-def initialize_board(seed: Positive, index: Positive = 0):
+def initialize_board(seed: Unsigned, index: Unsigned = 0):
     """Generate random initial board state."""
     key = Random(seed=seed, index=index)
     states = States(key.key, 1)
@@ -36,7 +36,7 @@ def initialize_board(seed: Positive, index: Positive = 0):
 
 @app.get('/game/exec', response_model=Turn)
 def execute_action(
-    state: State, action: Action, seed: Positive, index: Positive = 0
+    state: State, action: Action, seed: Unsigned, index: Unsigned = 0
 ):
     """Execute an action on the board state."""
     states = States(string=[state])

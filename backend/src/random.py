@@ -1,19 +1,19 @@
-"""Implement random code."""
+"""Implement routes to split random keys."""
 from .app import app
 from jax import numpy as jnp
 from jax import random
 from pydantic import BaseModel, conint
 from typing import List
 
-Positive = conint(ge=0)
+Unsigned = conint(ge=0)
 
 
 class Random(BaseModel):
     """Pydantic model for jax random key."""
 
     __slots__ = ('key')
-    seed: Positive
-    index: Positive = 0
+    seed: Unsigned
+    index: Unsigned = 0
 
     class Config:
         """Pydantic config."""
@@ -33,6 +33,6 @@ class Random(BaseModel):
 
 
 @app.get('/random', response_model=List[Random])
-def split_random_key(seed: Positive, index: Positive = 0, n: Positive = 2):
+def split_random_key(seed: Unsigned, index: Unsigned = 0, n: conint(ge=2) = 2):
     """Split random key into n children keys."""
     return Random(seed=seed, index=index).split(n)

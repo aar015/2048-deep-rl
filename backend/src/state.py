@@ -31,10 +31,9 @@ def _small_to_string(small):
 
 @jit
 @vmap
-@jit
 def _small_to_medium(small):
     """Convert state (2,) array of type uint32 to (2,8) array of type uint8."""
-    shifts = jnp.arange(0, 32, 4).reshape(1, 8).repeat(2, axis=0)
+    shifts = jnp.arange(0, 32, 4, jnp.uint32).reshape(1, 8).repeat(2, axis=0)
     padded = small.reshape(2, 1).repeat(8, axis=1)
     medium = ((padded << shifts) >> 28).astype(jnp.uint8)
     return medium
@@ -42,7 +41,6 @@ def _small_to_medium(small):
 
 @jit
 @vmap
-@jit
 def _small_to_large(small):
     """Convert state (2,) array of type uint32 to (4,4) array of type uint8."""
     shifts = jnp.array([[0, 4, 8, 12, 28, 24, 20, 16],
@@ -54,10 +52,9 @@ def _small_to_large(small):
 
 @jit
 @vmap
-@jit
 def _medium_to_small(medium):
     """Convert state (2,8) array of type uint8 to (2,) array of type uint32."""
-    shifts = jnp.arange(28, -4, -4).reshape(1, 8).repeat(2, axis=0)
+    shifts = jnp.arange(28, -4, -4, jnp.uint32).reshape(1, 8).repeat(2, axis=0)
     small = (medium << shifts).sum(1)
     return small
 
@@ -72,7 +69,6 @@ def _medium_to_large(medium):
 
 @jit
 @vmap
-@jit
 def _large_to_small(large):
     """Convert state (4,4) array of type uint8 to (2,) array of type uint32."""
     shifts = jnp.array([[28, 24, 20, 16, 0, 4, 8, 12],
@@ -91,7 +87,6 @@ def _large_to_medium(large):
 
 @jit
 @vmap
-@jit
 def _init_state(key):
     """Shuffle initial state arrays."""
     key1, key2 = random.split(key, 2)
@@ -158,7 +153,6 @@ def _next(state, reward):
 
 @jit
 @vmap
-@jit
 def _rotations(state):
     """Calculate all rotations of state."""
     return jnp.stack([jnp.rot90(state, i) for i in range(4)])

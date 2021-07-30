@@ -10,16 +10,9 @@
         },
     },
 
-    "remoteEnv": {
-        "PYTHONPATH": "${PYTHONPATH}:/workspaces/2048-deep-rl/backend/",
-    },
-
-    "mounts": [
-        "type=bind,src=${localEnv:HOME}/.ssh/id_ed25519,dst=/root/.ssh/id_25519,ro=true,consistency=cached",
-        "type=bind,src=${localEnv:HOME}/.ssh/id_ed25519.pub,dst=/root/.ssh/id_25519.pub,ro=true,consistency=cached"
-    ],
-
     "forwardPorts": [3000, 8000],
+
+    "containerEnv": {"PYTHONPATH": "/workspaces/deep2048/backend"},
 
     "runArgs": [
         "--pid=host",
