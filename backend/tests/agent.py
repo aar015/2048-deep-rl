@@ -1,8 +1,7 @@
 """Test agent code."""
 from jax import numpy as jnp
 from jax.random import PRNGKey, split, uniform
-from src.activation import Activation
-from src.network import NetworkDispatch
+from src.network import NetworkDispatch, Activation
 from src.state import States, _validate
 import time
 
@@ -22,22 +21,26 @@ def choose_action(params, states, key=None, exploration=0):
     return actions
 
 
-def execute_action(key, states, actions):
-    """Execute action."""
-    rotated = states.rotate(actions)
-    nextStates = rotated.next.add_tile(key).rotate(-1 * actions)
-    return nextStates
-
-
-def play_game(key, params):
+def play(key, params, n):
     """Play Game."""
     key, subkey = split(key)
-    states = States(subkey, 1000)
+    states = States(subkey, n)
+    score = jnp.zeros((n,))
+    turns = []
     while not states.terminal.all():
-        # print(states.live.string)
         actions = choose_action(params, states)
-        # print(actions)
-        states = execute_action(key, states, actions)
+        rotated = states.rotate(actions)
+        score += rotated.reward
+        states = rotated.next.add_tile(key)
+        turns.append({'state': rotated, 'score': score})
+    for turn in turns:
+        turn['future-reward'] = score - turn['score']
+    states = States(
+        medium=jnp.concatenate([turn['state'].medium for turn in turns])
+    )
+    future_rewards = jnp.concatenate([turn['future-reward'] for turn in turns])
+    mask = jnp.logical_not(states.terminal)
+    return states.valid, future_rewards[mask]
 
 
 key = PRNGKey(0)
@@ -55,5 +58,8 @@ params = dispatch.init_params(subkey)
 
 key, subkey = split(key)
 start = time.time()
-play_game(key, params)
+states, future_rewards = play(key, params, 10000)
 print(f'Time: {time.time() - start:.3f} s')
+print(states.n)
+# print(states.string)
+# print(future_rewards)

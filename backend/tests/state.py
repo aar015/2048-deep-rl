@@ -12,6 +12,7 @@ def main():
     print(states.string)
     print(states.next.string)
     print(states.next.add_tile(key2).string)
+    print(states.string)
 
 
 if __name__ == '__main__':

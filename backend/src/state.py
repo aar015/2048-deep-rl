@@ -7,12 +7,204 @@ from numba import guvectorize
 from pydantic.types import constr
 from typing import List
 
+hex = partial(int, base=16)
 State = constr(
     strip_whitespace=True, to_lower=True,
     min_length=16, max_length=16, regex='^[a-f0-9]*$'
 )
 
-hex = partial(int, base=16)
+
+class States(object):
+    """Batch of 2048 board states."""
+
+    def __init__(
+        self, key=None, n=100, string=None, small=None, medium=None, large=None
+    ):
+        """Initialize states."""
+        self._n = None
+        self._string = None
+        self._small = None
+        self._medium = None
+        self._large = None
+        self._valid = None
+        self._validate = None
+        self._next = None
+        self._reward = None
+        self._rotations = None
+        self._terminal = None
+        self._live = None
+
+        if key is None:
+            if string is not None:
+                self._string = string
+            elif small is not None:
+                self._small = small
+            elif medium is not None:
+                self._medium = medium
+            elif large is not None:
+                self._large = large
+        else:
+            self._n = n
+            keys = random.split(key, n)
+            self._large = _init_state(keys)
+        if (
+            self._string is None and self._small is None
+            and self._medium is None and self._large is None
+        ):
+            raise Exception('Must pass arguement to State init.')
+
+    @property
+    def n(self):
+        """Get number of states."""
+        if self._n is not None:
+            return self._n
+        if self._small is not None:
+            self._n = self._small.shape[0]
+            return self.n
+        if self._medium is not None:
+            self._n = self._medium.shape[0]
+            return self.n
+        if self._large is not None:
+            self._n = self._large.shape[0]
+            return self.n
+        if self._string is not None:
+            self._n = self._string.shape[0]
+            return self.n
+
+    @property
+    def string(self):
+        """Get states as list of strings."""
+        if self._string is not None:
+            return self._string
+        if self._small is not None:
+            self._string = _small_to_string(self._small)
+            return self.string
+        if self._medium is not None:
+            self._small = _medium_to_small(self._medium)
+            return self.string
+        if self._large is not None:
+            self._small = _large_to_small(self._large)
+            return self.string
+        raise Exception('No state data.')
+
+    @property
+    def small(self):
+        """Get states as array of shape (n, 2) of type uint32."""
+        if self._small is not None:
+            return self._small
+        if self._medium is not None:
+            self._small = _medium_to_small(self._medium)
+            return self.small
+        if self._large is not None:
+            self._small = _large_to_small(self._large)
+            return self.small
+        if self._string is not None:
+            self._small = _string_to_small(self._string)
+            return self.small
+        raise Exception('No state data.')
+
+    @property
+    def medium(self):
+        """Get states as array of shape (n, 2, 8) of type uint8."""
+        if self._medium is not None:
+            return self._medium
+        if self._small is not None:
+            self._medium = _small_to_medium(self._small)
+            return self.medium
+        if self._large is not None:
+            self._medium = _large_to_medium(self._large)
+            return self.medium
+        if self._string is not None:
+            self._small = _string_to_small(self._string)
+            return self.medium
+        raise Exception('No state data.')
+
+    @property
+    def large(self):
+        """Get states as array of shape (n, 4, 4) of type uint8."""
+        if self._large is not None:
+            return self._large
+        if self._small is not None:
+            self._large = _small_to_large(self._small)
+            return self.large
+        if self._medium is not None:
+            self._large = _medium_to_large(self._medium)
+            return self.large
+        if self._string is not None:
+            self._small = _string_to_small(self._string)
+            return self.large
+        raise Exception('No state data.')
+
+    @property
+    def valid(self):
+        """Get valid states."""
+        if self._valid is not None:
+            return self._valid
+        self._valid = States(large=self.large[self.validate])
+        return self.valid
+
+    @property
+    def validate(self):
+        """Get mask of states that pass validation."""
+        if self._validate is not None:
+            return self._validate
+        self._validate = _validate(self.large)
+        return self.validate
+
+    @property
+    def next(self):
+        """Get next states."""
+        if self._next is not None:
+            return self._next
+        nextStates = self.large + 0
+        self._reward = _next(nextStates)
+        self._next = States(large=nextStates)
+        return self.next
+
+    @property
+    def reward(self):
+        """Get rewards for advancing states."""
+        if self._reward is not None:
+            return self._reward
+        self.next
+        return self.reward
+
+    @property
+    def rotations(self):
+        """Get rotations of states."""
+        if self._rotations is not None:
+            return self._rotations
+        self._rotations = _rotations(self.large)
+        return self.rotations
+
+    @property
+    def terminal(self):
+        """Get mask of terminal states."""
+        if self._terminal is not None:
+            return self._terminal
+        self._terminal = jnp.logical_not(_validate(self.rotations).any(axis=1))
+        return self.terminal
+
+    @property
+    def live(self):
+        """Get live states."""
+        if self._live is not None:
+            return self._live
+        self._live = States(large=self.large[jnp.logical_not(self.terminal)])
+        return self.live
+
+    def rotate(self, actions):
+        """Rotate states."""
+        return States(large=_choose_rotation(self.rotations, actions))
+
+    def add_tile(self, key):
+        """Add new tile to board."""
+        key1, key2 = random.split(key)
+        rand1 = random.uniform(key1, (self.n,))
+        rand2 = random.uniform(key2, (self.n,))
+        nextStates = self.large + 0
+        _add_tile(nextStates, rand1, rand2)
+        return States(large=nextStates)
 
 
 def _string_to_small(strings: List[State]):
@@ -165,203 +357,26 @@ def _choose_rotation(rotations, actions):
         reshape(-1, 4, 4)
 
 
-@jit
-def _add_tile(key, states):
+@numba_to_jax(jnp.bool_)
+@guvectorize(
+    ['void(u1[:,:], f4[:], f4[:], u1[:])'], '(n,n),(),()->()',
+    target=SETTINGS.target, nopython=True
+)
+def _add_tile(state, rand1, rand2, success):
     """Add new tile to states."""
-    key1, key2 = random.split(key)
-    flat = states.reshape(-1, 16)
-    zeros = jnp.where(flat, 0, 1)
-    randoms = random.uniform(key1, zeros.shape)
-    indices = jnp.arange(states.shape[0])
-    empties = jnp.argmax(zeros * randoms, axis=1)
-    weights = jnp.array([0, 0.9, 0.1])
-    newTiles = random.choice(key2, 3, (states.shape[0],), p=weights)
-    return flat.at[indices, empties].set(newTiles).reshape((-1, 4, 4))
-
-
-class States(object):
-    """Batch of 2048 board states."""
-
-    def __init__(
-        self, key=None, n=100, string=None, small=None, medium=None, large=None
-    ):
-        """Initialize states."""
-        self._n = n
-        self._string = None
-        self._small = None
-        self._medium = None
-        self._large = None
-        self._valid = None
-        self._validate = None
-        self._next = None
-        self._reward = None
-        self._rotations = None
-        self._terminal = None
-        self._live = None
-
-        if key is None:
-            if string is not None:
-                self._string = string
-            elif small is not None:
-                self._small = small
-            elif medium is not None:
-                self._medium = medium
-            elif large is not None:
-                self._large = large
-        else:
-            self._n = n
-            keys = random.split(key, n)
-            self._large = _init_state(keys)
-        if (
-            self._string is None and self._small is None
-            and self._medium is None and self._large is None
-        ):
-            raise Exception('Must pass arguement to State init.')
-
-    @property
-    def n(self):
-        """Get number of states."""
-        if self._n is not None:
-            return self._n
-        if self._small is not None:
-            self._n = self._small.shape[0]
-            return self.n
-        if self._medium is not None:
-            self._n = self._medium.shape[0]
-            return self.n
-        if self._large is not None:
-            self._n = self._large.shape[0]
-            return self.n
-        if self._string is not None:
-            self._n = self._string.shape[0]
-            return self.n
-
-    @property
-    def string(self):
-        """Get states as list of strings."""
-        if self._string is not None:
-            return self._string
-        if self._small is not None:
-            self._string = _small_to_string(self._small)
-            return self.string
-        if self._medium is not None:
-            self._small = _medium_to_small(self._medium)
-            return self.string
-        if self._large is not None:
-            self._small = _large_to_small(self._large)
-            return self.string
-        raise Exception('No state data.')
-
-    @property
-    def small(self):
-        """Get states as array of shape (n, 2) of type uint32."""
-        if self._small is not None:
-            return self._small
-        if self._medium is not None:
-            self._small = _medium_to_small(self._medium)
-            return self.small
-        if self._large is not None:
-            self._small = _large_to_small(self._large)
-            return self.small
-        if self._string is not None:
-            self._small = _string_to_small(self._string)
-            return self.small
-        raise Exception('No state data.')
-
-    @property
-    def medium(self):
-        """Get states as array of shape (n, 2, 8) of type uint8."""
-        if self._medium is not None:
-            return self._medium
-        if self._small is not None:
-            self._medium = _small_to_medium(self._small)
-            return self.medium
-        if self._large is not None:
-            self._medium = _large_to_medium(self._large)
-            return self.medium
-        if self._string is not None:
-            self._small = _string_to_small(self._string)
-            return self.medium
-        raise Exception('No state data.')
-
-    @property
-    def large(self):
-        """Get states as array of shape (n, 4, 4) of type uint8."""
-        if self._large is not None:
-            return self._large
-        if self._small is not None:
-            self._large = _small_to_large(self._small)
-            return self.large
-        if self._medium is not None:
-            self._large = _medium_to_large(self._medium)
-            return self.large
-        if self._string is not None:
-            self._small = _string_to_small(self._string)
-            return self.large
-        raise Exception('No state data.')
-
-    @property
-    def valid(self):
-        """Get valid states."""
-        if self._valid is not None:
-            return self._valid
-        self._valid = States(small=self.small[self.validate])
-        return self.valid
-
-    @property
-    def validate(self):
-        """Get mask of states that pass validation."""
-        if self._validate is not None:
-            return self._validate
-        self._validate = jnp.array(_validate(self.large))
-        return self.validate
-
-    @property
-    def next(self):
-        """Get next states."""
-        if self._next is not None:
-            return self._next
-        nextStates = self.large + 0
-        self._reward = _next(nextStates)
-        self._next = States(large=nextStates)
-        return self.next
-
-    @property
-    def reward(self):
-        """Get rewards for advancing states."""
-        if self._reward is not None:
-            return self._reward
-        self.next
-        return self.reward
-
-    @property
-    def rotations(self):
-        """Get rotations of states."""
-        if self._rotations is not None:
-            return self._rotations
-        self._rotations = _rotations(self.large)
-        return self.rotations
-
-    @property
-    def terminal(self):
-        """Get mask of terminal states."""
-        if self._terminal is not None:
-            return self._terminal
-        self._terminal = jnp.logical_not(_validate(self.rotations).any(axis=1))
-        return self.terminal
-
-    @property
-    def live(self):
-        """Get live states."""
-        if self._live is not None:
-            return self._live
-        self._live = States(small=self.small[jnp.logical_not(self.terminal)])
-        return self.live
-
-    def rotate(self, actions):
-        """Rotate states."""
-        return States(large=_choose_rotation(self.rotations, actions))
-
-    def add_tile(self, key):
-        """Add new tile to board."""
-        return States(large=_add_tile(key, self.large))
+    num_zero = 0
+    for x in range(state.shape[0]):
+        for y in range(state.shape[1]):
+            if state[x, y] == 0:
+                num_zero += 1
+    if num_zero != 0:
+        nth_zero = int(num_zero * rand1[0])
+        x, y, count = 0, 0, 0
+        for _x in range(state.shape[0]):
+            for _y in range(state.shape[1]):
+                if state[_x, _y] == 0:
+                    if count == nth_zero:
+                        x, y = _x, _y
+                    count += 1
+        state[x, y] = 1 if rand2[0] < 0.9 else 2
+    success[0] = num_zero != 0

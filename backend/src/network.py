@@ -1,16 +1,64 @@
 """Define NN model."""
-from .activation import Activation, activation_func
 from .state import States, _large_to_medium
+from enum import Enum
 from functools import partial
 from typing import List
-from jax import jit, vmap
+from jax import jit, vmap, nn
 from jax import numpy as jnp
 from jax.nn import relu
 from jax.random import split, normal
 from pydantic import BaseModel, conint
-from typing import Optional
+from typing import Callable, Optional
 
 Positive = conint(gt=0)
+
+
+class Activation(str, Enum):
+    """Enumeration of available activation functions."""
+
+    relu = 'relu'
+    relu6 = 'relu6'
+    sigmoid = 'sigmoid'
+    softplus = 'softplus'
+    soft_sign = 'soft-sign'
+    silu = 'silu'
+    swish = 'swish'
+    log_sigmoid = 'log-sigmoid'
+    leaky_relu = 'leaky-relu'
+    hard_sigmoid = 'hard-sigmoid'
+    hard_silu = 'hard-silu'
+    hard_swish = 'hard-swish'
+    hard_tanh = 'hard-tanh'
+    elu = 'elu'
+    celu = 'celu'
+    selu = 'selu'
+    gelu = 'gelu'
+    glu = 'glu'
+
+
+class LayerDispatch(BaseModel):
+    """Pydantic model for outline to build layer."""
+
+    width: Positive
+    activation: Activation
+
+    class Config:
+        """Pydantic config."""
+
+        allow_mutation = False
+
+
+class LayerParams(BaseModel):
+    """Pydantic model for layer parameters."""
+
+    weights: jnp.ndarray
+    biases: jnp.ndarray
+
+    class Config:
+        """Pydantic config."""
+
+        allow_mutation = False
+        arbitrary_types_allowed = True
 
 
 class Layer(BaseModel):
@@ -28,57 +76,46 @@ class Layer(BaseModel):
         allow_mutation = False
 
 
-class Network(BaseModel):
-    """Pydantic model for neural network."""
+class NetworkDispatch(BaseModel):
+    """Pydantic model for outline to build neural network."""
 
-    __slots__ = ('_params')
-    sym_layers: List[Layer]
-    asym_layers: List[Layer]
+    sym_layers: List[LayerDispatch]
+    asym_layers: List[LayerDispatch]
 
     class Config:
         """Pydantic config."""
 
         allow_mutation = False
 
-    def __init__(self, **kwargs):
-        """Initialize neural network."""
-        super().__init__(**kwargs)
-        object.__setattr__(self, '_params', None)
-
-    @property
-    def params(self):
-        """Get parameters corresponding to network."""
-        if self._params is not None:
-            return self._params
-        temp = NetworkParams(**{
-            'sym_layers': [{
-                'weights': jnp.array(layer.weights),
-                'biases': jnp.array(layer.biases),
-            } for layer in self.sym_layers],
-            'aysm_layers': [{
-                'weights': jnp.array(layer.weights),
-                'biases': jnp.array(layer.biases),
-            } for layer in self.sym_layers],
+    def init_params(self, key: jnp.ndarray, scale: float = 1):
+        """Initialize model params."""
+        sym_layers, asym_layers = [], []
+        for index, (layers, dispatch) in enumerate((
+            (sym_layers, self.sym_layers), (asym_layers, self.asym_layers)
+        )):
+            widths = [layer.width for layer in dispatch]
+            if index == 0:
+                widths = [8] + widths
+            else:
+                widths = [self.sym_layers[-1].width] + widths
+            for n_in, n_out in zip(widths[:-1], widths[1:]):
+                key, w_key, b_key = split(key, 3)
+                layers.append(LayerParams(**{
+                    'weights': scale * normal(w_key, (n_in, n_out)),
+                    'biases': scale * normal(b_key, (n_out,)),
+                }))
+        w_key, b_key = split(key)
+        asym_layers.append(LayerParams(**{
+            'weights': scale * normal(w_key, (self.asym_layers[-1].width, 1)),
+            'biases': scale * normal(b_key, (1,))
+        }))
+        return NetworkParams(**{
+            'sym_layers': sym_layers,
+            'asym_layers': asym_layers,
             'activations': [
-                layer.activation for layer in
-                self.sym_layers + self.asym_layers[:-1]
-            ],
+                lay.activation for lay in self.sym_layers + self.asym_layers
+            ]
         })
-        object.__setattr__(self, '_params', temp)
-        return self.params
-
-
-class LayerParams(BaseModel):
-    """Pydantic model for layer parameters."""
-
-    weights: jnp.ndarray
-    biases: jnp.ndarray
-
-    class Config:
-        """Pydantic config."""
-
-        allow_mutation = False
-        arbitrary_types_allowed = True
 
 
 class NetworkParams(BaseModel):
@@ -138,58 +175,49 @@ class NetworkParams(BaseModel):
         )
 
 
-class LayerDispatch(BaseModel):
-    """Pydantic model for outline to build layer."""
+class Network(BaseModel):
+    """Pydantic model for neural network."""
 
-    width: Positive
-    activation: Activation
-
-    class Config:
-        """Pydantic config."""
-
-        allow_mutation = False
-
-
-class NetworkDispatch(BaseModel):
-    """Pydantic model for outline to build neural network."""
-
-    sym_layers: List[LayerDispatch]
-    asym_layers: List[LayerDispatch]
+    __slots__ = ('_params')
+    sym_layers: List[Layer]
+    asym_layers: List[Layer]
 
     class Config:
         """Pydantic config."""
 
         allow_mutation = False
 
-    def init_params(self, key: jnp.ndarray, scale: float = 1):
-        """Initialize model params."""
-        sym_layers, asym_layers = [], []
-        for index, (layers, dispatch) in enumerate((
-            (sym_layers, self.sym_layers), (asym_layers, self.asym_layers)
-        )):
-            widths = [layer.width for layer in dispatch]
-            if index == 0:
-                widths = [8] + widths
-            else:
-                widths = [self.sym_layers[-1].width] + widths
-            for n_in, n_out in zip(widths[:-1], widths[1:]):
-                key, w_key, b_key = split(key, 3)
-                layers.append(LayerParams(**{
-                    'weights': scale * normal(w_key, (n_in, n_out)),
-                    'biases': scale * normal(b_key, (n_out,)),
-                }))
-        w_key, b_key = split(key)
-        asym_layers.append(LayerParams(**{
-            'weights': scale * normal(w_key, (self.asym_layers[-1].width, 1)),
-            'biases': scale * normal(b_key, (1,))
-        }))
-        return NetworkParams(**{
-            'sym_layers': sym_layers,
-            'asym_layers': asym_layers,
+    def __init__(self, **kwargs):
+        """Initialize neural network."""
+        super().__init__(**kwargs)
+        object.__setattr__(self, '_params', None)
+
+    @property
+    def params(self):
+        """Get parameters corresponding to network."""
+        if self._params is not None:
+            return self._params
+        temp = NetworkParams(**{
+            'sym_layers': [{
+                'weights': jnp.array(layer.weights),
+                'biases': jnp.array(layer.biases),
+            } for layer in self.sym_layers],
+            'asym_layers': [{
+                'weights': jnp.array(layer.weights),
+                'biases': jnp.array(layer.biases),
+            } for layer in self.asym_layers],
             'activations': [
-                lay.activation for lay in self.sym_layers + self.asym_layers
-            ]
+                layer.activation for layer in
+                self.sym_layers + self.asym_layers[:-1]
+            ],
         })
+        object.__setattr__(self, '_params', temp)
+        return self.params
+
+
+def activation_func(activation: Activation) -> Callable:
+    """Convert activation string to activation function."""
+    return getattr(nn, activation.replace('-', '_'))
 
 
 @partial(jit, static_argnums=2)
