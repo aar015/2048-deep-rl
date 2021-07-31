@@ -14,8 +14,8 @@ class Trainer(BaseModel):
     """Pydantic model for network trainer."""
 
     num_epochs: Positive = int(1e2)
-    batch_play: Positive = int(1e4)
-    batch_learn: Positive = int(1e5)
+    batch_play: Positive = int(1e3)
+    batch_learn: Positive = int(1e4)
     dropout: Fraction = 1e-1
     exploration: Fraction = 1e-3
     exploration_decay: Fraction = 0
