@@ -7,7 +7,7 @@ from jax import numpy as jnp
 from jax.random import split, uniform, choice
 from pydantic import BaseModel, confloat
 
-Fraction = confloat(ge=0, le=0)
+Fraction = confloat(ge=0, le=1)
 
 
 class Trainer(BaseModel):
@@ -94,7 +94,7 @@ def _loss(sym_layers, asym_layers, activations, x, y):
     return jnp.mean((y_hat - y) ** 2)
 
 
-@partial(jit, static_argnums=[2, 3])
+@partial(jit, static_argnums=[2])
 def _update(sym_layers, asym_layers, activations, learning_rate, x, y):
     sym_grads, asym_grads = grad(_loss, argnums=[0, 1])(
         sym_layers, asym_layers, activations, x, y
