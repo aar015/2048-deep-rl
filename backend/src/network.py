@@ -36,7 +36,7 @@ class Activation(str, Enum):
     glu = 'glu'
 
 
-class LayerDispatch(BaseModel):
+class Layer(BaseModel):
     """Pydantic model for outline to build layer."""
 
     width: Positive
@@ -48,39 +48,11 @@ class LayerDispatch(BaseModel):
         allow_mutation = False
 
 
-class LayerParams(BaseModel):
-    """Pydantic model for layer parameters."""
-
-    weights: jnp.ndarray
-    biases: jnp.ndarray
-
-    class Config:
-        """Pydantic config."""
-
-        allow_mutation = False
-        arbitrary_types_allowed = True
-
-
-class Layer(BaseModel):
-    """Pydantic model for network layer."""
-
-    n_in: Positive
-    n_out: Positive
-    weights: List[List[float]]
-    biases: List[float]
-    activation: Optional[Activation]
-
-    class Config:
-        """Pydantic config."""
-
-        allow_mutation = False
-
-
-class NetworkDispatch(BaseModel):
+class Network(BaseModel):
     """Pydantic model for outline to build neural network."""
 
-    sym_layers: List[LayerDispatch]
-    asym_layers: List[LayerDispatch]
+    sym_layers: List[Layer]
+    asym_layers: List[Layer]
 
     class Config:
         """Pydantic config."""
@@ -118,12 +90,71 @@ class NetworkDispatch(BaseModel):
         })
 
 
+class LayerParams(BaseModel):
+    """Pydantic model for network layer."""
+
+    n_in: Positive
+    n_out: Positive
+    weights: List[List[float]]
+    biases: List[float]
+    activation: Optional[Activation]
+
+    class Config:
+        """Pydantic config."""
+
+        allow_mutation = False
+
+
 class NetworkParams(BaseModel):
-    """Pydantic model for network parameters."""
+    """Pydantic model for neural network."""
 
     __slots__ = ('_network')
-    sym_layers: List[LayerParams]
-    asym_layers: List[LayerParams]
+    sym_layers: List[Layer]
+    asym_layers: List[Layer]
+
+    class Config:
+        """Pydantic config."""
+
+        allow_mutation = False
+
+    def __init__(self, **kwargs):
+        """Initialize neural network."""
+        super().__init__(**kwargs)
+        object.__setattr__(self, '_network', None)
+
+    @property
+    def _network(self):
+        if self._network is not None:
+            return self._network
+        temp = NetworkParams(**{
+            'sym_layers': [{
+                'weights': jnp.array(layer.weights),
+                'biases': jnp.array(layer.biases),
+            } for layer in self.sym_layers],
+            'asym_layers': [{
+                'weights': jnp.array(layer.weights),
+                'biases': jnp.array(layer.biases),
+            } for layer in self.asym_layers],
+            'activations': [
+                layer.activation for layer in
+                self.sym_layers + self.asym_layers[:-1]
+            ],
+        })
+        object.__setattr__(self, '_network', temp)
+        return self.params
+
+
+class _Layer(BaseModel):
+    """Pydantic model for layer parameters."""
+
+    pass
+
+
+class _Network(BaseModel):
+    """Pydantic model for network parameters."""
+
+    sym_layers: List[_Layer]
+    asym_layers: List[_Layer]
     activations: List[Activation]
 
     class Config:
@@ -141,7 +172,7 @@ class NetworkParams(BaseModel):
         """Get network corresponding to parameters."""
         if self._network is not None:
             return self._network
-        temp = Network(**{
+        temp = _Network(**{
             'sym_layers': [{
                 'n_in': layer.weights.shape[0],
                 'n_out': layer.weights.shape[1],
@@ -173,46 +204,6 @@ class NetworkParams(BaseModel):
             params['sym_layers'], params['asym_layers'],
             tuple(params['activations']), states.rotations
         )
-
-
-class Network(BaseModel):
-    """Pydantic model for neural network."""
-
-    __slots__ = ('_params')
-    sym_layers: List[Layer]
-    asym_layers: List[Layer]
-
-    class Config:
-        """Pydantic config."""
-
-        allow_mutation = False
-
-    def __init__(self, **kwargs):
-        """Initialize neural network."""
-        super().__init__(**kwargs)
-        object.__setattr__(self, '_params', None)
-
-    @property
-    def params(self):
-        """Get parameters corresponding to network."""
-        if self._params is not None:
-            return self._params
-        temp = NetworkParams(**{
-            'sym_layers': [{
-                'weights': jnp.array(layer.weights),
-                'biases': jnp.array(layer.biases),
-            } for layer in self.sym_layers],
-            'asym_layers': [{
-                'weights': jnp.array(layer.weights),
-                'biases': jnp.array(layer.biases),
-            } for layer in self.asym_layers],
-            'activations': [
-                layer.activation for layer in
-                self.sym_layers + self.asym_layers[:-1]
-            ],
-        })
-        object.__setattr__(self, '_params', temp)
-        return self.params
 
 
 def activation_func(activation: Activation) -> Callable:

@@ -5,7 +5,7 @@
     "build": { 
         "dockerfile": "containerfile",
         "args": {
-            "CUDA_VERSION": "11.3.1",
+            "CUDA_VERSION": "11.4.2",
             "UBUNTU_VERSION": "20.04",
         },
     },
@@ -29,7 +29,5 @@
         "python.linting.pydocstyleEnabled": true,
         "python.linting.flake8Path": "/usr/local/bin/flake8",
         "python.linting.pydocstylePath": "/usr/local/bin/pydocstyle",
-        "python.linting.flake8Args": ["--ignore=F722,W503"],
-        "jupyter.alwaysTrustNotebooks": true,
     },
 }

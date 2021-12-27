@@ -5,8 +5,8 @@ EDITOR="/usr/bin/nvim"
 
 plugins=(
     git
+    history-substring-search
     zsh-autosuggestions
-    zsh-history-substring-search
     zsh-syntax-highlighting
 )
 

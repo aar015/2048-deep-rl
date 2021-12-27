@@ -34,27 +34,27 @@ class States(object):
         self._terminal = None
         self._live = None
 
-        if key is None:
-            if string is not None:
-                self._string = string
-            elif small is not None:
-                self._small = small
-            elif medium is not None:
-                self._medium = medium
-            elif large is not None:
-                self._large = large
-        else:
+        if key is not None:
             self._n = n
             keys = random.split(key, n)
             self._large = _init_state(keys)
+        elif string is not None:
+            self._string = string
+        elif small is not None:
+            self._small = small
+        elif medium is not None:
+            self._medium = medium
+        elif large is not None:
+            self._large = large
+
         if (
             self._string is None and self._small is None
             and self._medium is None and self._large is None
         ):
-            raise Exception('Must pass arguement to State init.')
+            raise Exception('Failed to initialize states.')
 
     @property
-    def n(self):
+    def n(self) -> int:
         """Get number of states."""
         if self._n is not None:
             return self._n
