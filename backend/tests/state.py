@@ -13,6 +13,8 @@ def main():
     print(states.next.string)
     print(states.next.add_tile(key2).string)
     print(states.string)
+    print(states.medium.device())
+    print(states.large.device())
 
 
 if __name__ == '__main__':

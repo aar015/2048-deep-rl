@@ -1,12 +1,8 @@
 """Test trainer code."""
-import time
-import warnings
-from src.trainer import Trainer
 from jax.random import PRNGKey, split
-from numba.core.errors import NumbaPerformanceWarning
 from src.network import NetworkSpec, Activation
-
-warnings.simplefilter('ignore', category=NumbaPerformanceWarning)
+from src.trainer import Trainer
+from time import time
 
 key = PRNGKey(0)
 
@@ -29,12 +25,12 @@ network = spec.init(subkey)
 
 key, subkey = split(key)
 trainer = Trainer(**{
-    'num_epochs': int(1e1),
+    'num_epochs': int(1e4),
     'batch_play': int(1e2),
     'batch_learn': int(1e3),
 })
-start = time.time()
+start = time()
 trained_network = trainer.train(subkey, network)
-print(f'Time: {time.time() - start:.3f} s')
+print(f'Time: {time() - start:.3f} s')
 
 # print(trained_network)

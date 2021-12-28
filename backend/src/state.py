@@ -4,12 +4,14 @@ from functools import partial, wraps
 from jax import jit, vmap, random
 from jax import numpy as jnp
 from numba import guvectorize
-from numba.core.errors import NumbaDeprecationWarning
+from numba.core.errors import NumbaDeprecationWarning, NumbaPerformanceWarning
+from numpy import ndarray
 from pydantic.types import constr
 from typing import List
 from warnings import simplefilter
 
 simplefilter('ignore', category=NumbaDeprecationWarning)
+simplefilter('ignore', category=NumbaPerformanceWarning)
 
 hex = partial(int, base=16)
 State = constr(
@@ -299,6 +301,8 @@ def numba_to_jax(dtype):
         @wraps(func)
         def wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
+            if type(result) == ndarray:
+                return jnp.array(result, dtype)
             return jnp.array(result.copy_to_host(), dtype)
         return wrapper
     return factory
