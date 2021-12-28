@@ -26,4 +26,4 @@ ENV SHELL /usr/bin/zsh
 
 # Runtime environment python packages
 RUN python3 -m pip install --no-cache-dir "jax[cuda]==0.2.26" -f https://storage.googleapis.com/jax-releases/jax_releases.html
-RUN python3 -m pip install --no-cache-dir fastapi[all]==0.70.1 flax==0.3.6 numba==0.54.1 pydantic==1.8.2
+RUN python3 -m pip install --no-cache-dir fastapi[all]==0.70.1 numba==0.54.1 pydantic==1.8.2
