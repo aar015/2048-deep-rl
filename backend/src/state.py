@@ -4,8 +4,12 @@ from functools import partial, wraps
 from jax import jit, vmap, random
 from jax import numpy as jnp
 from numba import guvectorize
+from numba.core.errors import NumbaDeprecationWarning
 from pydantic.types import constr
 from typing import List
+from warnings import simplefilter
+
+simplefilter('ignore', category=NumbaDeprecationWarning)
 
 hex = partial(int, base=16)
 State = constr(

@@ -1,4 +1,5 @@
 """Implement routes to query agent."""
+from typing import Optional
 from .network import Network, NetworkParams, Positive, _forward
 from .state import States, _validate
 from functools import partial
@@ -16,13 +17,12 @@ class Trainer(BaseModel):
     num_epochs: Positive = int(1e2)
     batch_play: Positive = int(1e3)
     batch_learn: Positive = int(1e4)
-    dropout: Fraction = 1e-1
     exploration: Fraction = 1e-3
     exploration_decay: Fraction = 0
     learning_rate: float = 1e-3
     learning_rate_decay: Fraction = 0
 
-    def train(self, key, network: Network):
+    def train(self, key, network: Network, new_name: Optional[str] = None):
         """Train network."""
         params = network.params
         for epoch in range(self.num_epochs):
@@ -30,7 +30,7 @@ class Trainer(BaseModel):
             key, subkey1, subkey2 = split(key, 3)
             states, future_rewards = self._play(subkey1, params)
             params = self._update(subkey2, params, states, future_rewards)
-        return params.network
+        return params.construct(network.name if new_name is None else new_name)
 
     def _play(self, key, params):
         key, subkey = split(key)
