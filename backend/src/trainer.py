@@ -2,11 +2,13 @@
 from typing import Optional
 from .network import Network, NetworkParams, Positive, _forward
 from .state import States, _validate
+# from .memtest import alloc_since_call
 from functools import partial
 from jax import grad, jit, tree_multimap
 from jax import numpy as jnp
 from jax.random import split, uniform, choice
 from pydantic import BaseModel, confloat
+# from tracemalloc import Filter
 
 Fraction = confloat(ge=0, le=1)
 
@@ -32,6 +34,7 @@ class Trainer(BaseModel):
             params = self._update(subkey2, params, states, future_rewards)
         return params.construct(network.name if new_name is None else new_name)
 
+    # @alloc_since_call('Play', [Filter(True, '*jax/core.py')], 'traceback')
     def _play(self, key, params):
         key, subkey = split(key)
         states = States(subkey, self.batch_play)
