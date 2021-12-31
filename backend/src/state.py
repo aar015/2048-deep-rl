@@ -1,5 +1,6 @@
 """Define state of 2048 game."""
-from .app import SETTINGS
+from src.random import Random
+from .app import app, SETTINGS
 from functools import partial, wraps
 from jax import jit, vmap, random
 from jax import numpy as jnp
@@ -388,3 +389,9 @@ def _add_tile(state, rand1, rand2, success):
                     count += 1
         state[x, y] = 1 if rand2[0] < 0.9 else 2
     success[0] = num_zero != 0
+
+
+@app.get('/state/init', response_model=State)
+def state_init(key: Random):
+    """Initialize board state."""
+    return States(key.key, 1).string[0]

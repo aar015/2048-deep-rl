@@ -1,4 +1,4 @@
-"""Define FastAPI object."""
+"""Define FastAPI app."""
 import jax
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

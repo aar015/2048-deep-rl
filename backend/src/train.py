@@ -1,16 +1,15 @@
 """Implement routes to query agent."""
 from typing import Optional
 from .network import Network, NetworkParams, Positive, _forward
+from .numeric import Fraction
 from .state import States, _validate
 # from .memtest import alloc_since_call
 from functools import partial
 from jax import grad, jit, tree_multimap
 from jax import numpy as jnp
 from jax.random import split, uniform, choice
-from pydantic import BaseModel, confloat
+from pydantic import BaseModel
 # from tracemalloc import Filter
-
-Fraction = confloat(ge=0, le=1)
 
 
 class Trainer(BaseModel):

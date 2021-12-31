@@ -1,4 +1,6 @@
-"""Define NN model."""
+"""Define neural network model."""
+from .numeric import Positive
+from .random import Random
 from .state import States, _large_to_medium
 from enum import Enum
 from functools import partial
@@ -6,10 +8,8 @@ from typing import List
 from jax import jit, vmap, nn
 from jax import numpy as jnp
 from jax.random import split, normal
-from pydantic import BaseModel, conint
-from typing import Callable
-
-Positive = conint(gt=0)
+from pydantic import BaseModel
+from typing import Callable, Optional
 
 
 class Activation(str, Enum):
@@ -51,6 +51,8 @@ class NetworkSpec(BaseModel):
     """Pydantic model for specification to build neural network."""
 
     name: str
+    key: Random
+    scale: float = 1
     sym_layers: List[LayerSpec]
     asym_layers: List[LayerSpec]
 
@@ -59,8 +61,9 @@ class NetworkSpec(BaseModel):
 
         allow_mutation = False
 
-    def init(self, key: jnp.ndarray, scale: float = 1):
+    def init(self, tag='e0'):
         """Initialize model params."""
+        key = self.key.key
         sym_layers, asym_layers = [], []
         for index, (layers, spec) in enumerate((
             (sym_layers, self.sym_layers), (asym_layers, self.asym_layers)
@@ -73,13 +76,14 @@ class NetworkSpec(BaseModel):
             for n_in, n_out in zip(widths[:-1], widths[1:]):
                 key, w_key, b_key = split(key, 3)
                 layers.append(LayerParams(**{
-                    'weights': scale * normal(w_key, (n_in, n_out)),
-                    'biases': scale * normal(b_key, (n_out,)),
+                    'weights': self.scale * normal(w_key, (n_in, n_out)),
+                    'biases': self.scale * normal(b_key, (n_out,)),
                 }))
         w_key, b_key = split(key)
         asym_layers.append(LayerParams(**{
-            'weights': scale * normal(w_key, (self.asym_layers[-1].width, 1)),
-            'biases': scale * normal(b_key, (1,))
+            'weights': self.scale *
+            normal(w_key, (self.asym_layers[-1].width, 1)),
+            'biases': self.scale * normal(b_key, (1,))
         }))
         params = NetworkParams(**{
             'sym_layers': sym_layers,
@@ -88,7 +92,7 @@ class NetworkSpec(BaseModel):
                 lay.activation for lay in self.sym_layers + self.asym_layers
             ] + [Activation.relu]
         })
-        return params.construct(self.name)
+        return params.construct(self.name, tag)
 
 
 class LayerParams(BaseModel):
@@ -116,10 +120,11 @@ class NetworkParams(BaseModel):
 
         allow_mutation = False
 
-    def construct(self, name):
+    def construct(self, name, tag):
         """Construct network from parameters."""
         return Network(**{
             'name': name,
+            'tag': tag,
             'sym_layers': [{
                 'n_in': layer.weights.shape[0],
                 'n_out': layer.weights.shape[1],
@@ -171,8 +176,9 @@ class Network(BaseModel):
 
     __slots__ = ('_params')
     name: str
-    sym_layers: List[Layer]
-    asym_layers: List[Layer]
+    tag: str
+    sym_layers: Optional[List[Layer]]
+    asym_layers: Optional[List[Layer]]
 
     class Config:
         """Pydantic config."""
@@ -187,6 +193,8 @@ class Network(BaseModel):
     @property
     def params(self) -> NetworkParams:
         """Get network parameters."""
+        if self.sym_layers is None or self.asym_lay is None:
+            raise Exception('Must initialize network layers.')
         if self._params is not None:
             return self._params
         temp = NetworkParams(**{
@@ -211,7 +219,7 @@ class Network(BaseModel):
         return self.params.predict(states)
 
 
-def activation_func(activation: Activation) -> Callable:
+def _activation_func(activation: Activation) -> Callable:
     """Convert activation string to activation function."""
     return getattr(nn, activation.replace('-', '_'))
 
@@ -223,17 +231,17 @@ def _forward(sym_layers, asym_layers, activations, x):
     x2 = x[1]
     index = 0
     for layer in sym_layers:
-        activation = activation_func(activations[index])
+        activation = _activation_func(activations[index])
         x1 = activation(x1 @ layer['weights'] + layer['biases'])
         x2 = activation(x2 @ layer['weights'] + layer['biases'])
         index += 1
     x = x1 + x2
     *asym_layers, last = asym_layers
     for layer in asym_layers:
-        activation = activation_func(activations[index])
+        activation = _activation_func(activations[index])
         x = activation(x @ layer['weights'] + layer['biases'])
         index += 1
-    activation = activation_func(activations[-1])
+    activation = _activation_func(activations[-1])
     return (activation(x @ last['weights'] + last['biases']) + 1e-3).squeeze()
 
 

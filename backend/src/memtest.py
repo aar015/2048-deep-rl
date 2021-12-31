@@ -6,8 +6,8 @@ from typing import List
 
 
 def alloc_in_call(
-    tag: str, filters: List[Filter] = [],
-    key_type: str = 'filename', traceback_len: int = 5
+    tag: str, filters: List[Filter] = [], key_type: str = 'filename',
+    top: int = 5, traceback: int = 5
 ):
     """Announce memory allocated in function."""
     def factory(func):
@@ -20,11 +20,11 @@ def alloc_in_call(
             print(tag)
             stats = snapshot2.filter_traces(filters).\
                 compare_to(snapshot1.filter_traces(filters), key_type)
-            for stat in stats[:10]:
+            for stat in stats[:top]:
                 new_kb = stat.size_diff / 1024
                 total_kb = stat.size / 1024
                 print(f'  {new_kb} new KiB, {total_kb} total KiB')
-                for line in stat.traceback.format()[:2 * traceback_len]:
+                for line in stat.traceback.format()[:2 * traceback]:
                     print('    ' + line)
             return result
         return wrapper
@@ -32,8 +32,8 @@ def alloc_in_call(
 
 
 def alloc_since_call(
-    tag: str, filters: List[Filter] = [],
-    key_type: str = 'filename', traceback_len: int = 5
+    tag: str, filters: List[Filter] = [], key_type: str = 'filename',
+    top: int = 5, traceback: int = 5
 ):
     """Announce memory allocated since last time function was called."""
     def factory(func):
@@ -50,11 +50,11 @@ def alloc_since_call(
             snapshot = take_snapshot()
             stats = snapshot.filter_traces(filters).\
                 compare_to(prev_snapshot.filter_traces(filters), key_type)
-            for stat in stats[:10]:
+            for stat in stats[:top]:
                 new_kb = stat.size_diff / 1024
                 total_kb = stat.size / 1024
                 print(f'\t{new_kb} new KiB, {total_kb} total KiB')
-                for line in stat.traceback.format()[:2 * traceback_len]:
+                for line in stat.traceback.format()[:2 * traceback]:
                     print('\t\t' + line)
             prev_snapshot = snapshot
             return result
