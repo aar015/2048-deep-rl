@@ -12,8 +12,6 @@
 
     "forwardPorts": [3000, 8000],
 
-    "containerEnv": {"PYTHONPATH": "/workspaces/deep2048/backend"},
-
     "runArgs": [
         "--pid=host",
     ],
