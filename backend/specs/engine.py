@@ -1,16 +1,16 @@
 """deep2048 engine specs."""
+from jax import numpy as jnp
 import numpy as np
-from .game import GameCan, GameState
+from pydantic import BaseModel
+from typing import Optional, List
+from .game import GameAction, GameCan, GameState
 from .numeric import Positive
 from .random import Key
 from ..engine.batch import Batch
-from jax import numpy as jnp
-from pydantic import BaseModel
-from typing import Optional, List
 
 
 class EngineInit(BaseModel):
-    """Request to initialize 2048 engine."""
+    """Request to initialize 2048 game engine."""
 
     key: Key
     n: Positive = 1
@@ -23,18 +23,13 @@ class EngineInit(BaseModel):
 
 
 class EngineState(EngineInit):
-    """State of 2048 engine."""
+    """State of 2048 game engine."""
 
     games: List[GameState]
 
-    class Config:
-        """Pydantic config."""
-
-        allow_mutation = False
-
     @classmethod
-    def from_batch(cls, key: Key, batch: Batch, scores, agent):
-        """Construct engine state from batch."""
+    def from_array(cls, key: Key, batch: Batch, scores, agent):
+        """Construct engine state from jax arrays."""
         n = batch.n
         states = batch.string
         can_move = np.array(jnp.logical_not(batch.terminal))
@@ -53,3 +48,14 @@ class EngineState(EngineInit):
             in zip(states, scores, cans)
         ]
         return cls(key=key, n=n, agent=agent, games=games)
+
+
+class EngineAction(EngineInit):
+    """Request to perform actions in 2048 game engine."""
+
+    games: List[GameAction]
+
+    @property
+    def state(self):
+        """Get corresponding EngineState object."""
+        return EngineState(**self.dict())

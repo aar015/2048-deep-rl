@@ -60,7 +60,7 @@ class Batch(object):
             self._n = self._large.shape[0]
             return self.n
         if self._string is not None:
-            self._n = self._string.shape[0]
+            self._n = len(self._string)
             return self.n
 
     @property

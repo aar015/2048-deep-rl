@@ -1,6 +1,7 @@
 """deep2048 game specs."""
 from .numeric import Unsigned
 from ..engine.state import State
+from enum import IntEnum
 from pydantic import BaseModel
 from typing import Optional
 
@@ -39,10 +40,25 @@ class GameState(BaseModel):
 
     state: State
     score: Unsigned
-    can: GameCan
+    can: Optional[GameCan]
     q: Optional[GameQ]
 
     class Config:
         """Pydantic config."""
 
         allow_mutation = False
+
+
+class Action(IntEnum):
+    """Action in 2048 game engine."""
+
+    left = 0
+    up = 1
+    right = 2
+    down = 3
+
+
+class GameAction(GameState):
+    """Request to perform action on 2048 game state."""
+
+    action: Optional[Action]
