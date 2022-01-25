@@ -21,10 +21,14 @@ class Key(BaseModel):
         """Return random key as jax ndarray."""
         return jnp.array([self.index, self.seed], jnp.uint32)
 
-    def split(self, num: int = 2):
+    def split(self, n: int = 2):
         """Split random key into n children keys."""
-        return [Key(seed=child[1], index=child[0])
-                for child in random.split(self.array, num)]
+        return [Key.from_array(child) for child in random.split(self.array, n)]
+
+    @classmethod
+    def from_array(cls, array):
+        """Construct key object from array."""
+        return cls(seed=array[1], index=array[0])
 
 
 class SplitKey(BaseModel):

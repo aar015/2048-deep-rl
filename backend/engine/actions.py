@@ -1,5 +1,4 @@
 """deep2048 game actions."""
-from ..settings import SETTINGS
 from functools import wraps
 from jax import jit, vmap, random
 from jax import numpy as jnp
@@ -7,6 +6,7 @@ from numba import guvectorize
 from numba.core.errors import NumbaDeprecationWarning, NumbaPerformanceWarning
 from numpy import ndarray
 from warnings import simplefilter
+from ..settings import SETTINGS
 
 simplefilter('ignore', category=NumbaDeprecationWarning)
 simplefilter('ignore', category=NumbaPerformanceWarning)

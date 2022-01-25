@@ -1,9 +1,9 @@
 """deep2048 game specs."""
-from .numeric import Unsigned
-from ..engine.state import State
 from enum import IntEnum
 from pydantic import BaseModel
 from typing import Optional
+from .numeric import Unsigned
+from .state import State
 
 
 class GameCan(BaseModel):

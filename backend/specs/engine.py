@@ -6,7 +6,6 @@ from typing import Optional, List
 from .game import GameAction, GameCan, GameState
 from .numeric import Positive
 from .random import Key
-from ..engine.batch import Batch
 
 
 class EngineInit(BaseModel):
@@ -28,15 +27,16 @@ class EngineState(EngineInit):
     games: List[GameState]
 
     @classmethod
-    def from_array(cls, key: Key, batch: Batch, scores, agent):
+    def from_engine(cls, engine, agent):
         """Construct engine state from jax arrays."""
-        n = batch.n
-        states = batch.string
-        can_move = np.array(jnp.logical_not(batch.terminal))
-        can_left = np.array(batch.validate)
-        can_up = np.array(batch.rotate(1).validate)
-        can_right = np.array(batch.rotate(2).validate)
-        can_down = np.array(batch.rotate(3).validate)
+        key = Key.from_array(engine.key)
+        n = engine.n
+        states = engine.batch.string
+        can_move = np.array(jnp.logical_not(engine.batch.terminal))
+        can_left = np.array(engine.batch.valid_mask)
+        can_up = np.array(engine.batch.rotate(1).valid_mask)
+        can_right = np.array(engine.batch.rotate(2).valid_mask)
+        can_down = np.array(engine.batch.rotate(3).valid_mask)
         cans = [
             GameCan(move=move, left=left, up=up, right=right, down=down)
             for move, left, up, right, down
@@ -45,7 +45,7 @@ class EngineState(EngineInit):
         games = [
             GameState(state=state, score=score, can=can)
             for state, score, can
-            in zip(states, scores, cans)
+            in zip(states, engine.scores, cans)
         ]
         return cls(key=key, n=n, agent=agent, games=games)
 

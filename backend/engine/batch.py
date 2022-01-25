@@ -2,15 +2,15 @@
 from jax import random
 from jax import numpy as jnp
 from .actions import init, rotations, choose_rotation, validate, next, add_tile
-from .transforms import string_to_small, small_to_string, small_to_medium
-from .transforms import small_to_large, medium_to_small, large_to_small
+from .transforms import string_to_small, small_to_string, small_to_medium,\
+    small_to_large, medium_to_small, large_to_small
 
 
 class Batch(object):
     """Batch of 2048 board states."""
 
     def __init__(
-        self, key=None, n=100, string=None, small=None, medium=None, large=None
+        self, key=None, n=1, string=None, small=None, medium=None, large=None
     ):
         """Initialize states."""
         self._n = None
@@ -18,13 +18,14 @@ class Batch(object):
         self._small = None
         self._medium = None
         self._large = None
+        self._valid_mask = None
         self._valid = None
-        self._validate = None
-        self._next = None
-        self._reward = None
         self._rotations = None
+        self._valid_actions = None
         self._terminal = None
         self._live = None
+        self._next = None
+        self._reward = None
 
         if key is not None:
             self._n = n
@@ -62,6 +63,7 @@ class Batch(object):
         if self._string is not None:
             self._n = len(self._string)
             return self.n
+        raise Exception('No state data.')
 
     @property
     def string(self):
@@ -128,20 +130,52 @@ class Batch(object):
         raise Exception('No state data.')
 
     @property
+    def valid_mask(self):
+        """Get mask of states that pass validation."""
+        if self._valid_mask is not None:
+            return self._valid_mask
+        self._valid_mask = validate(self.large)
+        return self.valid_mask
+
+    @property
     def valid(self):
         """Get valid states."""
         if self._valid is not None:
             return self._valid
-        self._valid = Batch(large=self.large[self.validate])
+        self._valid = Batch(large=self.large[self.valid_mask])
         return self.valid
 
     @property
-    def validate(self):
-        """Get mask of states that pass validation."""
-        if self._validate is not None:
-            return self._validate
-        self._validate = validate(self.large)
-        return self.validate
+    def rotations(self):
+        """Get rotations of states."""
+        if self._rotations is not None:
+            return self._rotations
+        self._rotations = rotations(self.large)
+        return self.rotations
+
+    @property
+    def valid_actions(self):
+        """Get valid actions for state."""
+        if self._valid_actions is not None:
+            return self._valid_actions
+        self._valid_actions = validate(self.rotations)
+        return self.valid_actions
+
+    @property
+    def terminal(self):
+        """Get mask of terminal states."""
+        if self._terminal is not None:
+            return self._terminal
+        self._terminal = jnp.logical_not(self.valid_actions.any(axis=1))
+        return self.terminal
+
+    @property
+    def live(self):
+        """Get live states."""
+        if self._live is not None:
+            return self._live
+        self._live = Batch(large=self.large[jnp.logical_not(self.terminal)])
+        return self.live
 
     @property
     def next(self):
@@ -161,30 +195,6 @@ class Batch(object):
         self.next
         return self.reward
 
-    @property
-    def rotations(self):
-        """Get rotations of states."""
-        if self._rotations is not None:
-            return self._rotations
-        self._rotations = rotations(self.large)
-        return self.rotations
-
-    @property
-    def terminal(self):
-        """Get mask of terminal states."""
-        if self._terminal is not None:
-            return self._terminal
-        self._terminal = jnp.logical_not(validate(self.rotations).any(axis=1))
-        return self.terminal
-
-    @property
-    def live(self):
-        """Get live states."""
-        if self._live is not None:
-            return self._live
-        self._live = Batch(large=self.large[jnp.logical_not(self.terminal)])
-        return self.live
-
     def rotate(self, actions):
         """Rotate states."""
         return Batch(large=choose_rotation(self.rotations, actions))
@@ -195,5 +205,7 @@ class Batch(object):
         rand1 = random.uniform(key1, (self.n,))
         rand2 = random.uniform(key2, (self.n,))
         nextStates = self.large + 0
-        add_tile(nextStates, rand1, rand2)
+        success = add_tile(nextStates, rand1, rand2)
+        if not jnp.any(success):
+            raise Exception('Adding tile did not change any state.')
         return Batch(large=nextStates)
